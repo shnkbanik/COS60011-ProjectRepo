@@ -2,8 +2,8 @@ import tkinter as tk
 import configuration
 # import classes (components of application) from files
 
-#from login import Login
-#from register import Register
+from login import Login
+from register import Register
 #from dashboard import Dashboard
 
 
