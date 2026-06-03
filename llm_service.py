@@ -82,3 +82,49 @@ def post_process(response):
         response = response.replace(phrase, "")
     response = response.strip() # Strip leading and trailing blank lines
     return response
+
+# Concatinate the prompts
+# Main Function - generate_response()
+def generate_response(user_prompt):
+
+    # S:1 : Build the full prompt by calling build_prompt method and passing user_prompt param
+    full_prompt = build_prompt(user_prompt)
+    try:
+        # S:2 : Send the combined prompt to the Ollama local API
+        # Note: Ollama must be running before calling this
+        # Command Prompt: ollama serve
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model":  "llama3.1:8b", # pre-trained model
+                "prompt": full_prompt,
+                "stream": False, # wait for the complete response before returning
+                # LLM Configuration Parameters
+                "options": {
+                    "temperature":    0.3, # temperature = 0.3  = low value enforces deterministic
+                    "num_predict":    2048, # num_predict = 2048 = maximum tokens the model can generate
+                    "top_p":          0.9, # top_p = 0.9 = nucleus sampling, keeps output focused
+                    "repeat_penalty": 1.1, # repeat_penalty = 1.1 = discourages repeating the same code lines
+                },
+            },
+            timeout=120, # wait up to 120 seconds for the model to respond
+        )
+        # S:3 : Extract the raw text from the Ollama API response JSON
+        raw_response = response.json().get("response", "No response received from model.")
+        # S:4 : Remove any markdown fences or introductory phrases
+        clean_response = post_process(raw_response)
+        # S:5 : Return the clean Python code to dashboard.py for display
+        return clean_response
+    except requests.exceptions.ConnectionError:
+        # Ollama is not running — guide the user to start it
+        return (
+            "Error: Could not connect to Ollama.\n\n"
+            "Check that Ollama is running.\n"
+            "Open a terminal and run: ollama serve"
+        )
+    except requests.exceptions.Timeout:
+        # No response within Timer (120 Seconds)
+        return (
+            "Error: The model took too long to respond.\n\n"
+            "Please try again."
+        )
