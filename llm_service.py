@@ -83,6 +83,47 @@ def post_process(response):
     response = response.strip() # Strip leading and trailing blank lines
     return response
 
+# Code validation by Pylint
+def validate_code(code_string):
+
+    # S:1 : Keep the generated code to temp Python file
+    with tempfile.NamedTemporaryFile(
+        suffix=".py",
+        mode="w",
+        delete=False,
+        encoding="utf-8"
+    ) as tmp_file:
+        tmp_file.write(code_string)
+        tmp_path = tmp_file.name
+    try:
+        # S:2 : Run pylint on the temp file
+        result = subprocess.run(
+            ["pylint", tmp_path, "--errors-only"],
+            capture_output=True,
+            text=True
+        )
+        # S:3 : Combine standard output and error from pylint into one string
+        pylint_output = result.stdout + result.stderr
+        # Step 4: Build a readable result message for the user
+        if pylint_output.strip() == "":
+            validation_result = "No errors found by Pylint." # # pylint produced no output = no error
+        else:
+            # pylint found issues — show them to the user
+            # Remove the temporary file path from the output so it looks clean
+            clean_output = pylint_output.replace(tmp_path, "generated_code.py")
+            validation_result = "PyLint found the following issues:\n\n" + clean_output
+
+    except FileNotFoundError:
+        validation_result = (
+            "PyLint is not installed."
+        )
+    finally:
+        # S:4 : Delete temporary file
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+
+    return validation_result
+
 # Concatinate the prompts
 # Main Function - generate_response()
 def generate_response(user_prompt):
