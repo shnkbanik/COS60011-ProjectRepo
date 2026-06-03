@@ -4,7 +4,7 @@ import configuration
 
 from login import Login
 from register import Register
-#from dashboard import Dashboard
+from dashboard import Dashboard
 
 
 class App(tk.Tk):
